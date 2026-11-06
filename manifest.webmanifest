@@ -1,0 +1,13 @@
+{
+  "name": "Bánh Bao Hoa Anh",
+  "short_name": "Hoa Anh",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F7F8F4",
+  "theme_color": "#F7F8F4",
+  "icons": [
+    { "src": "icon-180.jpg", "sizes": "180x180", "type": "image/jpeg" },
+    { "src": "logo.jpg", "sizes": "512x512", "type": "image/jpeg" }
+  ]
+}

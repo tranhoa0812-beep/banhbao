@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Hoa Anh">
+<meta name="theme-color" content="#F7F8F4">
+<link rel="apple-touch-icon" href="icon-180.jpg">
+<title>Bánh Bao Hoa Anh</title>
+<link rel="manifest" href="manifest.webmanifest">
+<!-- Font và thư viện để sẵn trong app → không có mạng vẫn chạy -->
+<link rel="stylesheet" href="fonts/fonts.css">
+<script src="vendor/qrcode.min.js"></script>
+<script src="vendor/html2canvas.min.js" defer></script>
+<style>
+/* Theo poster tiệm: nền trắng sáng, xanh lá dịu, nâu mộc cho tiêu đề, viền mảnh */
+:root{
+  --sage:#6F9B5C; --pastel:#B9D3AC; --cream:#F7F8F4; --wood:#7A5236; --leaf:#4F6B3A;
+  --ink:#2F332D; --muted:#8B9187; --line:#E2E8DE; --card:#FFFFFF; --soft:#EAF4E4;
+  --frame:#CFDDC6; --sep:#EEF1EB; --rose:#E58FA6;
+  --safe-b:env(safe-area-inset-bottom,0px); --safe-t:env(safe-area-inset-top,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--cream);color:var(--ink);font:15px/1.4 "Be Vietnam Pro",system-ui,-apple-system,sans-serif}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none;padding:0}
+input,select{font-size:16px}
+.app{max-width:480px;margin:0 auto;min-height:100vh;position:relative}
+
+/* Header */
+header{position:sticky;top:0;z-index:20;background:var(--cream);padding:calc(var(--safe-t) + 10px) 16px 10px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line)}
+header img{width:38px;height:38px;border-radius:50%;object-fit:cover;border:2px solid var(--card);box-shadow:0 0 0 1px var(--line)}
+header h1{margin:0;flex:1;font:700 24px/1 "Dancing Script",cursive;color:var(--wood)}
+.icon-btn{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:var(--sage);position:relative}
+.icon-btn:active{background:var(--soft)}
+.icon-btn svg{width:22px;height:22px}
+.dot{position:absolute;top:8px;right:8px;width:8px;height:8px;border-radius:50%;background:var(--wood);border:2px solid var(--cream)}
+
+main{padding:14px 16px calc(150px + var(--safe-b))}
+.screen{display:none}.screen.on{display:block}
+
+/* Cards */
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
+.label{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.row{display:flex;gap:8px}
+.chip{flex:1;height:44px;border-radius:12px;border:1px solid var(--line);background:#fff;font-weight:600;font-size:15px}
+.chip.on{background:var(--sage);border-color:var(--sage);color:#fff}
+.tick{flex:1;height:44px;border-radius:12px;border:1px solid var(--line);background:#fff;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:500}
+.tick .box{width:20px;height:20px;border-radius:6px;border:2px solid var(--pastel);display:grid;place-items:center}
+.tick.on{border-color:var(--sage);background:var(--soft)}
+.tick.on .box{background:var(--sage);border-color:var(--sage)}
+.tick.on .box::after{content:"";width:5px;height:10px;border:solid #fff;border-width:0 2px 2px 0;transform:translateY(-1px) rotate(45deg)}
+.field{width:100%;height:46px;border:1px solid var(--line);border-radius:12px;background:#fff;padding:0 14px;outline:none}
+.field:focus{border-color:var(--sage);box-shadow:0 0 0 3px var(--soft)}
+.custom{margin-top:10px;display:none}.custom.on{display:block}
+
+/* Segmented (tab Hộp | Lẻ, kỳ báo cáo) */
+.seg{display:flex;background:#fff;border:1px solid var(--line);border-radius:12px;padding:3px;margin-bottom:12px}
+.seg button{flex:1;height:36px;border-radius:9px;font-size:13px;font-weight:600;color:var(--muted)}
+.seg button.on{background:var(--sage);color:#fff}
+.seg.big button{height:40px;font-size:15px}
+.seg button em{font-style:normal;font-weight:500;opacity:.85}
+
+/* Menu list */
+.bh{display:flex;align-items:center;gap:8px;width:100%;text-align:left}
+.bh .label{margin:0;flex:1}
+.bh .sum{font-weight:600;color:var(--wood);font-size:14px}
+.bh .chev{width:18px;height:18px;color:var(--muted);transition:transform .2s}
+.bh.open .chev{transform:rotate(180deg)}
+.bbody{display:none;margin-top:12px}.bbody.on{display:block}
+.search{position:relative;margin-bottom:6px}
+.search svg{position:absolute;left:12px;top:13px;width:20px;height:20px;color:var(--muted)}
+.search .field{padding-left:40px}
+.cat{font-size:12px;font-weight:600;color:var(--sage);margin:14px 2px 4px}
+.item{display:flex;align-items:center;gap:12px;padding:10px 2px;border-top:1px solid var(--sep);min-height:56px}
+.cat + .item{border-top:0}
+.ck{width:24px;height:24px;flex:none;border-radius:50%;border:2px solid var(--pastel);display:grid;place-items:center}
+.item.on .ck{background:var(--sage);border-color:var(--sage)}
+.item.on .ck::after{content:"";width:6px;height:11px;border:solid #fff;border-width:0 2px 2px 0;transform:translateY(-1px) rotate(45deg)}
+.nm{flex:1;min-width:0}
+.nm b{display:block;font-weight:500}
+.nm small{color:var(--muted);font-size:13px}
+.step{display:flex;align-items:center;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+.step button{width:34px;height:34px;font-size:20px;color:var(--sage);font-weight:600}
+.step span{min-width:52px;text-align:center;font-weight:600;font-size:14px;white-space:nowrap}
+.mixed{display:flex;gap:8px;padding:0 2px 10px 38px}
+.mixed .field{height:40px;font-size:15px;padding:0 10px}
+.mixed .note{flex:1.7}.mixed .mp{flex:1}
+.empty{color:var(--muted);text-align:center;padding:18px 0}
+
+/* Customer suggestions */
+.fwrap{position:relative;margin-bottom:8px}
+.sug{position:absolute;left:0;right:0;top:50px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 24px rgba(40,60,30,.10);z-index:5;overflow:hidden;display:none}
+.sug.on{display:block}
+.sug button{display:block;width:100%;text-align:left;padding:10px 14px;border-bottom:1px solid var(--sep)}
+.sug button:last-child{border:0}
+.sug small{color:var(--muted)}
+
+/* Total bar */
+.totalbar{position:fixed;left:0;right:0;bottom:calc(60px + var(--safe-b));z-index:15;display:none}
+.totalbar.on{display:block}
+.totalbar .in{max-width:480px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:12px;background:linear-gradient(to top,var(--cream) 70%,rgba(247,248,244,0))}
+.totalbar .t{flex:1}
+.totalbar .t small{display:block;color:var(--muted);font-size:12px}
+.totalbar .t b{font-size:22px;color:var(--wood)}
+.btn{height:50px;padding:0 26px;border-radius:14px;background:var(--sage);color:#fff;font-weight:600;font-size:16px}
+.btn:active{filter:brightness(.92)}
+.btn.ghost{background:#fff;color:var(--sage);border:1px solid var(--line)}
+.btn.wood{background:var(--wood)}
+
+/* Tab bar */
+nav{position:fixed;left:0;right:0;bottom:0;z-index:16;background:var(--card);border-top:1px solid var(--line);padding-bottom:var(--safe-b)}
+nav .in{max-width:480px;margin:0 auto;display:flex}
+nav button{flex:1;height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;font-weight:500;color:var(--muted);position:relative}
+nav button svg{width:24px;height:24px}
+nav button.on{color:var(--sage)}
+.badge{position:absolute;top:6px;left:50%;margin-left:6px;background:var(--wood);color:#fff;font-size:10px;font-weight:700;border-radius:9px;min-width:18px;height:18px;line-height:18px;padding:0 5px}
+
+/* Orders list */
+.filters{display:flex;gap:8px;margin-bottom:12px}
+.filters .chip{height:38px;font-size:14px}
+.summary{display:flex;justify-content:space-between;color:var(--muted);font-size:13px;margin:0 2px 10px}
+.summary b{color:var(--wood)}
+.day{font-size:12px;font-weight:600;color:var(--muted);margin:16px 2px 6px}
+.ord{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:8px}
+.ord .paid{width:30px;height:30px;flex:none;border-radius:50%;border:2px solid var(--pastel);display:grid;place-items:center}
+.ord.done .paid{background:var(--sage);border-color:var(--sage)}
+.ord.done .paid::after{content:"";width:7px;height:13px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:translateY(-1px) rotate(45deg)}
+.ord .info{flex:1;min-width:0}
+.ord .code{font-weight:600;letter-spacing:.01em}
+.ord .sub{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ord .amt{font-weight:600;color:var(--wood);white-space:nowrap}
+.ord.done .amt{color:var(--muted)}
+
+/* Report */
+.period{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.period b{font-size:16px}
+.period .icon-btn{background:var(--card);border:1px solid var(--line)}
+.dates{display:none;gap:8px;margin-bottom:12px}.dates.on{display:flex}
+.dates .field{flex:1}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}
+.tile small{display:block;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.tile b{display:block;font-size:22px;margin-top:4px}
+.tile i{font-style:normal;font-size:12px;color:var(--muted)}
+.tile.hero{background:var(--sage);border-color:var(--sage);color:#fff;margin-bottom:10px}
+.tile.hero small,.tile.hero i{color:rgba(255,255,255,.85)}
+.tile.hero b{font-size:32px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.wood b{color:var(--wood)}
+
+/* Bar chart */
+.chead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:2px}
+.chead .label{margin:0}
+.cread{display:flex;justify-content:space-between;align-items:baseline;min-height:26px}
+.cread span{font-size:13px;color:var(--muted)}
+.cread b{font-size:18px}
+.plot{position:relative;margin-top:10px}
+.cmax{position:absolute;left:0;right:0;top:0;border-top:1px dashed var(--line)}
+.cmax span{position:absolute;left:0;top:-15px;font-size:11px;color:var(--muted)}
+.plot{margin-top:24px}
+.bars{height:140px;display:flex;align-items:flex-end;gap:2px;border-bottom:1px solid var(--line)}
+.bars button{flex:1;min-width:0;height:100%;display:flex;align-items:flex-end;padding:0}
+.bars i{display:block;width:100%;background:var(--sage);border-radius:4px 4px 0 0;min-height:0}
+.bars.sel i{background:var(--pastel)}
+.bars.sel button.on i{background:var(--wood)}
+.xl{display:flex;gap:2px;margin-top:4px}
+.xl span{flex:1;min-width:0;text-align:center;font-size:10px;color:var(--muted);white-space:nowrap;overflow:visible}
+
+/* Chi tiết bánh */
+.dt .r{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-top:1px solid var(--sep)}
+.dt .r:first-of-type{border-top:0}
+.dt .r small{display:block;color:var(--muted);font-size:12px}
+.dt .r .v{text-align:right;white-space:nowrap}
+.dt .r .v b{font-weight:600}
+
+/* Sheet & bill */
+.sheet{position:fixed;inset:0;z-index:40;background:rgba(47,51,45,.4);display:none;overflow:auto;-webkit-overflow-scrolling:touch}
+.sheet.on{display:block}
+.sheet .wrap{max-width:440px;margin:0 auto;padding:calc(var(--safe-t) + 16px) 14px calc(var(--safe-b) + 16px)}
+.bill{background:var(--card);border-radius:20px;padding:20px 18px;position:relative;overflow:hidden}
+.bill .top-b{display:flex;align-items:center;gap:12px;padding-bottom:14px;border-bottom:1px dashed var(--pastel)}
+.bill .top-b img{width:52px;height:52px;border-radius:50%;object-fit:cover}
+.bill .shop{font:700 26px/1 "Dancing Script",cursive;color:var(--wood)}
+.bill .bcode{font-size:13px;color:var(--muted);margin-top:4px}
+.bill .bcode b{color:var(--ink);font-size:15px}
+.bill .cust{padding:12px 0;border-bottom:1px dashed var(--pastel);font-size:14px}
+.bill .cust b{font-size:16px}
+.bill .cust div{color:var(--muted)}
+.bill .grp{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--sage);margin:12px 0 2px}
+.bill .ln{display:flex;justify-content:space-between;gap:10px;padding:5px 0;font-size:14px}
+.bill .ln small{display:block;color:var(--muted);font-size:12.5px}
+.bill .ln .m{white-space:nowrap}
+.bill .ln.ship{border-top:1px solid var(--sep);margin-top:8px;padding-top:10px}
+.bill .tot{display:flex;justify-content:space-between;align-items:baseline;padding:12px 0;margin-top:6px;border-top:1px dashed var(--pastel);border-bottom:1px dashed var(--pastel)}
+.bill .tot b{font-size:26px;color:var(--wood)}
+.bill .qr{text-align:center;padding-top:14px}
+.bill .qr img{width:210px;height:210px;image-rendering:pixelated;background:#fff;padding:8px;border-radius:12px;border:1px solid var(--line)}
+.bill .qr .bank{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5}
+.bill .qr .bank b{color:var(--ink)}
+.stamp{position:absolute;top:96px;right:-6px;transform:rotate(-12deg);border:3px solid var(--sage);color:var(--sage);font-weight:700;padding:4px 12px;border-radius:8px;letter-spacing:.06em;background:rgba(255,252,245,.85)}
+.actions{display:flex;gap:8px;margin-top:12px}
+.actions .btn{flex:1;padding:0 8px;font-size:15px}
+.del{display:block;margin:14px auto 0;color:#fff;opacity:.85;font-size:14px;text-decoration:underline}
+
+/* Settings */
+.sheet.set{background:var(--cream)}
+.set .card{margin-bottom:10px}
+.set h2{margin:0 0 12px;font-size:20px;color:var(--ink)}
+.set .del{color:var(--wood)}
+.set .fl{display:block;font-size:12px;color:var(--muted);margin:8px 0 4px}
+.mitem{padding:8px 0;border-top:1px solid var(--sep)}
+.cat + .mitem{border-top:0}
+.mrow{display:flex;gap:6px;align-items:center}
+.mrow + .mrow{margin-top:6px}
+.mrow .field{height:40px;padding:0 10px;font-size:15px}
+.mrow .x{width:32px;color:var(--muted);font-size:20px}
+.mrow label{flex:1;font-size:11px;color:var(--muted)}
+.mrow label .field{margin-top:2px}
+.mrow label.pc{flex:.7}
+.add{color:var(--sage);font-weight:600;margin-top:6px}
+
+.toast{position:fixed;left:50%;bottom:calc(140px + var(--safe-b));transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:12px;font-size:14px;z-index:60;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90%;text-align:center}
+.toast.on{opacity:1}
+
+/* ===== Vibe: nhẹ nhàng, tươi sáng, mộc mạc (theo poster menu & QR của tiệm) ===== */
+header{background:rgba(247,248,244,.92);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+header img{width:40px;height:40px;border:2px solid #fff;box-shadow:0 0 0 1px var(--frame)}
+header h1{color:var(--leaf);font-size:25px}
+/* Khung viền mảnh, tiêu đề nằm trên đường viền như poster */
+.card{position:relative;margin-top:24px;padding-top:20px;border-color:var(--frame);border-radius:14px}
+.card > .label:first-child{position:absolute;top:-10px;left:12px;margin:0;padding:0 8px;background:var(--cream);color:var(--wood);font-size:13px;font-weight:700;letter-spacing:.1em;line-height:20px}
+.card > .cap{position:absolute;top:-9px;right:12px;padding:0 8px;background:var(--cream);font-size:12px;color:var(--muted);line-height:18px}
+.card > .bh{position:absolute;top:-12px;right:10px;width:auto;min-height:24px;padding:0 6px;background:var(--cream)}
+.card > .bh + .bbody{margin-top:0}
+.cat{color:var(--wood);letter-spacing:.02em}
+.btn{box-shadow:0 4px 12px rgba(79,107,58,.18)}
+.totalbar .t b{color:var(--leaf)}
+.badge{background:var(--rose)}
+.ord .amt{color:var(--leaf)}
+.tile{border-color:var(--frame)}
+.tile.hero{background:var(--soft);border-color:var(--frame);color:var(--leaf)}
+.tile.hero small,.tile.hero i{color:var(--muted)}
+.bars.sel i{background:#D3E3CA}
+.bars.sel button.on i{background:var(--leaf)}
+.dt .r .v b{color:var(--leaf)}
+/* Bill */
+.bill{border:1px solid var(--frame)}
+.bhead{text-align:center;padding-bottom:14px;border-bottom:1px dashed var(--pastel)}
+.bhead img{width:66px;height:66px;border-radius:50%;object-fit:cover;border:3px solid #fff;box-shadow:0 0 0 1px var(--frame)}
+.bill .shop{color:var(--leaf);margin-top:6px}
+.wave{display:block;width:58px;height:10px;margin:6px auto 4px;color:var(--wood)}
+.bill .grp{color:var(--wood)}
+.bill .tot b{color:var(--leaf)}
+.stamp{top:132px}
+.qcap{font-size:13px;color:var(--muted);margin-bottom:8px}
+.qrbox{position:relative;display:inline-block;padding:10px}
+.qrbox i{position:absolute;width:22px;height:22px;border:0 solid var(--ink)}
+.qrbox i:nth-of-type(1){left:0;top:0;border-width:2px 0 0 2px}
+.qrbox i:nth-of-type(2){right:0;top:0;border-width:2px 2px 0 0}
+.qrbox i:nth-of-type(3){left:0;bottom:0;border-width:0 0 2px 2px}
+.qrbox i:nth-of-type(4){right:0;bottom:0;border-width:0 2px 2px 0}
+.hint{font-size:13px;color:var(--muted);margin:0 0 12px}
+.hint b{color:var(--ink);font-weight:600}
+.btn.wide{width:100%}
+.bill .qr .qrbox img{display:block;border:0;padding:0;border-radius:0;width:200px;height:200px}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <img src="logo.jpg" alt="">
+    <h1>Bánh Bao Hoa Anh</h1>
+    <button class="icon-btn" id="syncBtn" aria-label="Đồng bộ">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-15.5 6.2M3 12a9 9 0 0 1 15.5-6.2"/><path d="M18.5 2v4h-4M5.5 22v-4h4"/></svg>
+      <span class="dot" id="syncDot"></span>
+    </button>
+    <button class="icon-btn" id="setBtn" aria-label="Cài đặt">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+    </button>
+  </header>
+
+  <main>
+    <!-- Màn 1: Lên đơn -->
+    <section class="screen on" id="s-order">
+      <div class="card">
+        <p class="label">Phí ship</p>
+        <div class="row" id="feeChips">
+          <button class="chip" data-fee="15000">15.000</button>
+          <button class="chip" data-fee="10000">10.000</button>
+          <button class="chip" data-fee="0">0</button>
+          <button class="chip" data-fee="custom">Khác</button>
+        </div>
+        <div class="custom" id="customWrap"><input class="field" id="customFee" inputmode="numeric" placeholder="Nhập số tiền"></div>
+        <div class="row" style="margin-top:10px" id="shipType">
+          <button class="tick" data-type="tu"><span class="box"></span>Tự ship</button>
+          <button class="tick" data-type="ngoai"><span class="box"></span>Ship ngoài</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="label">Bánh</p>
+        <button class="bh open" id="bhToggle">
+          <span class="sum" id="bhSum"></span>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="bbody on" id="bBody">
+          <div class="seg big" id="unitTabs">
+            <button data-t="hop" class="on">Hộp</button>
+            <button data-t="le">Lẻ</button>
+          </div>
+          <div class="search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <input class="field" id="q" placeholder="Tìm bánh" autocomplete="off">
+          </div>
+          <div id="menuList"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="label">Khách</p>
+        <div class="fwrap"><input class="field" id="cName" placeholder="Tên" autocomplete="off"><div class="sug" id="sugName"></div></div>
+        <div class="fwrap"><input class="field" id="cPhone" placeholder="SĐT" inputmode="tel" autocomplete="off"><div class="sug" id="sugPhone"></div></div>
+        <input class="field" id="cAddr" placeholder="Địa chỉ" autocomplete="off">
+      </div>
+    </section>
+
+    <!-- Màn 2: Đã lên đơn -->
+    <section class="screen" id="s-list">
+      <div class="filters" id="listFilter">
+        <button class="chip on" data-f="today">Hôm nay</button>
+        <button class="chip" data-f="unpaid">Chưa trả</button>
+        <button class="chip" data-f="all">Tất cả</button>
+      </div>
+      <div class="summary" id="listSum"></div>
+      <div id="orders"></div>
+    </section>
+
+    <!-- Màn 3: Báo cáo -->
+    <section class="screen" id="s-report">
+      <div class="seg" id="rMode">
+        <button data-m="d">Ngày</button><button data-m="m" class="on">Tháng</button><button data-m="q">Quý</button><button data-m="y">Năm</button><button data-m="c">Tùy chọn</button>
+      </div>
+      <div class="period" id="rPeriod">
+        <button class="icon-btn" data-dir="-1" aria-label="Trước"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m15 6-6 6 6 6"/></svg></button>
+        <b id="rLabel"></b>
+        <button class="icon-btn" data-dir="1" aria-label="Sau"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m9 6 6 6-6 6"/></svg></button>
+      </div>
+      <div class="dates" id="rDates"><input type="date" class="field" id="rFrom"><input type="date" class="field" id="rTo"></div>
+      <div id="rBody"></div>
+    </section>
+  </main>
+
+  <div class="totalbar on" id="totalBar"><div class="in">
+    <div class="t"><small id="totalSub">Tổng</small><b id="total">0đ</b></div>
+    <button class="btn" id="mkBill">Tạo bill</button>
+  </div></div>
+
+  <nav><div class="in" id="tabs">
+    <button class="on" data-s="s-order"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><path d="M12 8v8M8 12h8"/></svg>Lên đơn</button>
+    <button data-s="s-list"><span class="badge" id="unpaidBadge" style="display:none"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg>Đơn</button>
+    <button data-s="s-report"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Báo cáo</button>
+  </div></nav>
+</div>
+
+<div class="sheet" id="billSheet"><div class="wrap">
+  <div id="billBox"></div>
+  <div class="actions">
+    <button class="btn ghost" id="bPaid">Đã trả</button>
+    <button class="btn wood" id="bSave">Lưu ảnh</button>
+    <button class="btn" id="bClose">Xong</button>
+  </div>
+  <button class="del" id="bDel">Xoá đơn</button>
+</div></div>
+
+<div class="sheet set" id="setSheet"><div class="wrap">
+  <h2>Cài đặt</h2>
+  <div class="card">
+    <p class="label">Chuyển khoản</p>
+    <label class="fl">Tên shop</label><input class="field" id="stShop">
+    <label class="fl">Ngân hàng</label><select class="field" id="stBank"></select>
+    <label class="fl">Số tài khoản</label><input class="field" id="stAcct" inputmode="numeric">
+    <label class="fl">Chủ tài khoản</label><input class="field" id="stHolder">
+  </div>
+  <div class="card">
+    <p class="label">Menu bánh</p>
+    <div id="stMenu"></div>
+  </div>
+  <div class="actions">
+    <button class="btn ghost" id="stCancel">Huỷ</button>
+    <button class="btn" id="stSave">Lưu</button>
+  </div>
+  <button class="del" id="stReset">Xoá dữ liệu mẫu</button>
+</div></div>
+
+<div class="sheet set" id="syncSheet"><div class="wrap">
+  <h2>Đồng bộ OneDrive</h2>
+  <div class="card">
+    <p class="label">1 · Lấy về</p>
+    <p class="hint">Mở file <b>BanhBaoHoaAnh.json</b> trong OneDrive để gộp đơn từ máy kia.</p>
+    <button class="btn ghost wide" id="syImport">Lấy dữ liệu</button>
+    <input type="file" id="syFile" accept=".json,application/json" hidden>
+  </div>
+  <div class="card">
+    <p class="label">2 · Lưu lên</p>
+    <p class="hint">Chọn <b>Lưu vào Tệp → OneDrive</b>, ghi đè file cũ.</p>
+    <button class="btn wide" id="syExport">Lưu lên OneDrive</button>
+  </div>
+  <p class="hint" id="syInfo" style="text-align:center"></p>
+  <div class="actions"><button class="btn ghost" id="syClose">Đóng</button></div>
+</div></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- Tiện ích ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const pad = n => String(n).padStart(2, '0');
+const money = n => (n || 0).toLocaleString('vi-VN') + 'đ';
+const num = n => (n || 0).toLocaleString('vi-VN');
+const short = n => n >= 1e6 ? (n / 1e6).toLocaleString('vi-VN', { maximumFractionDigits: 1 }) + 'tr' : Math.round(n / 1000) + 'k';
+const digits = s => parseInt(String(s).replace(/\D/g, '')) || 0;
+const iso = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const parseIso = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const noAccent = s => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
+const norm = s => noAccent(s).toLowerCase().trim();
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const WD = ['Chủ nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+const dayLabel = s => { const d = parseIso(s); return `${WD[d.getDay()]}, ${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`; };
+let toastT;
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2400); }
+
+/* ---------- Dữ liệu ----------
+   Menu: pcs = số chiếc/hộp, price = giá hộp, priceLe = giá 1 chiếc (0 = không bán lẻ),
+   mix = hộp mix (ghi chú + giá tự điền khi lên đơn).
+   Dòng đơn: unit 'hop' | 'chiec'. */
+const CATS = { man: 'Nhân mặn', mini: 'Bánh mini', ngot: 'Bánh ngọt', chay: 'Bánh chay' };
+const MENU0 = [
+  ['man', 'Phô mai', 5, 50000, 10000], ['man', 'Thịt 2 trứng', 5, 60000, 12000], ['man', 'Xá xíu', 4, 60000, 15000],
+  ['man', 'Xá xíu phô mai', 4, 72000, 18000], ['man', 'Bò ngô phô mai', 4, 72000, 18000], ['man', 'Xúc xích phô mai', 4, 65000, 17000],
+  ['mini', 'Hộp mix mini', 15, 90000, 0, true], ['mini', 'Thịt miến mini', 10, 60000, 6000], ['mini', 'Xá xíu mini', 10, 60000, 6000],
+  ['mini', 'Bò ngô mini', 10, 60000, 6000], ['mini', 'Xúc xích mini', 10, 60000, 6000],
+  ['ngot', 'Đậu xanh', 5, 45000, 9000], ['ngot', 'Trứng sữa', 5, 45000, 9000], ['ngot', 'Kimsa', 6, 65000, 11000],
+  ['ngot', 'Socola', 6, 65000, 11000], ['ngot', 'Matcha', 6, 65000, 11000], ['ngot', 'Hộp mix ngọt', 6, 65000, 0, true],
+  ['chay', 'Chay nếp', 5, 25000, 5000], ['chay', 'Chay trắng', 5, 25000, 5000], ['chay', 'Chay gạo lứt', 5, 25000, 5000]
+].map(([cat, name, pcs, price, priceLe, mix], i) => ({ id: 'b' + (i + 1), cat, name, pcs, price, priceLe, mix: !!mix }));
+
+const SETTINGS0 = { shop: 'Bánh Bao Hoa Anh', bank: 'Vietcombank', bin: '970436', acct: '1017086801', holder: 'NGUYEN TUAN ANH' };
+/* Mã ngân hàng (BIN) theo chuẩn VietQR/NAPAS — QR dùng mã này, nên ngân hàng phải chọn từ danh sách */
+const BANKS = [
+  ['Vietcombank', '970436'], ['BIDV', '970418'], ['VietinBank', '970415'], ['Agribank', '970405'], ['Techcombank', '970407'],
+  ['MB Bank', '970422'], ['ACB', '970416'], ['VPBank', '970432'], ['TPBank', '970423'], ['Sacombank', '970403'],
+  ['VIB', '970441'], ['SHB', '970443'], ['HDBank', '970437'], ['OCB', '970448'], ['MSB', '970426'],
+  ['SeABank', '970440'], ['Eximbank', '970431'], ['LPBank', '970449']
+];
+
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+const lineOf = (m, unit, qty, extra = {}) => unit === 'hop'
+  ? { id: m.id, name: m.name, unit, pcs: m.pcs, price: extra.price ?? m.price, qty, note: extra.note || '' }
+  : { id: m.id, name: m.name, unit, pcs: 1, price: m.priceLe, qty, note: '' };
+
+function seed() {
+  /* Máy mới bắt đầu trống (chỉ có menu + tài khoản). Thêm ?demo vào địa chỉ để xem dữ liệu mẫu. */
+  if (!/demo/.test(location.search)) return { v: 2, sample: false, settings: { ...SETTINGS0 }, menu: MENU0, customers: [], orders: [] };
+  const custs = [
+    { name: 'Nguyễn Thu Trang', phone: '0912 345 678', addr: 'Ngõ 12 Láng Hạ' },
+    { name: 'Lê Thị Hương', phone: '0987 222 111', addr: 'Toà R2, Times City' },
+    { name: 'Phạm Minh Anh', phone: '0903 456 789', addr: '45 Trần Duy Hưng' },
+    { name: 'Đỗ Ngọc Lan', phone: '0978 111 333', addr: '8 Hoàng Quốc Việt' },
+    { name: 'Vũ Hải Yến', phone: '0965 432 100', addr: '21 Nguyễn Chí Thanh' },
+    { name: 'Bùi Thanh Mai', phone: '0934 567 890', addr: 'KĐT Linh Đàm' }
+  ];
+  const r = rng(26), pick = a => a[Math.floor(r() * a.length)];
+  const orders = [];
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  for (let back = 75; back >= 0; back--) {
+    const d = new Date(today); d.setDate(d.getDate() - back);
+    const n = back === 0 ? 3 : (r() < 0.25 ? 0 : 1 + Math.floor(r() * 4));
+    for (let k = 1; k <= n; k++) {
+      const c = pick(custs);
+      const items = []; const cnt = 1 + Math.floor(r() * 3);
+      for (let t = 0; t < 10 && items.length < cnt; t++) {
+        const m = pick(MENU0);
+        const le = !m.mix && r() < 0.3;
+        if (items.find(x => x.id === m.id && x.unit === (le ? 'chiec' : 'hop'))) continue;
+        if (le) items.push(lineOf(m, 'chiec', 1 + Math.floor(r() * (m.pcs - 1))));
+        else items.push(lineOf(m, 'hop', 1 + Math.floor(r() * 3), m.mix ? { note: pick(['5 xá xíu, 5 bò ngô, 5 xúc xích', '2 kimsa, 2 socola, 2 matcha', '3 vị tuỳ chọn']) } : {}));
+      }
+      items.sort((a, b) => (a.unit === 'hop' ? 0 : 1) - (b.unit === 'hop' ? 0 : 1));
+      const fee = pick([15000, 10000, 0, 15000, 20000]);
+      const type = r() < 0.6 ? 'tu' : 'ngoai';
+      const paid = back > 2 ? r() < 0.95 : (back === 0 ? k === 1 : r() < 0.5);
+      const at = new Date(d.getTime() + (7 + Math.floor(r() * 13)) * 3600e3 + Math.floor(r() * 60) * 60e3);
+      orders.push(makeOrder(iso(d), k, { ...c }, items, fee, type, paid, at));
+    }
+  }
+  return { v: 2, sample: true, settings: { ...SETTINGS0 }, menu: MENU0, customers: custs, orders };
+}
+
+function makeOrder(date, seq, cust, items, fee, type, paid, at) {
+  const goods = items.reduce((s, i) => s + i.price * i.qty, 0);
+  return { uid: newUid(), id: codeOf(date, seq, cust.name), date, seq, cust, items, ship: { fee, type }, goods, total: goods + fee, paid, createdAt: at.toISOString(), updatedAt: at.toISOString() };
+}
+
+function codeOf(date, seq, name) {
+  const d = parseIso(date);
+  const last = (name || '').trim().split(/\s+/).pop() || 'Khach';
+  let n = noAccent(last).replace(/[^A-Za-z0-9]/g, '').slice(0, 10) || 'Khach';
+  n = n.charAt(0).toUpperCase() + n.slice(1);
+  return `${pad(d.getMonth() + 1)}.${pad(d.getDate())}.${String(d.getFullYear()).slice(2)}-${pad(seq)}-${n}`;
+}
+
+/* "3 hộp · 2 chiếc" */
+function unitsText(items) {
+  const h = items.filter(i => i.unit === 'hop').reduce((s, i) => s + i.qty, 0);
+  const c = items.filter(i => i.unit === 'chiec').reduce((s, i) => s + i.qty, 0);
+  return [h ? h + ' hộp' : '', c ? c + ' chiếc' : ''].filter(Boolean).join(' · ');
+}
+
+function newUid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+
+const KEY = 'bbha.v2';
+let S = (() => { try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.v === 2) return s; } catch (e) {} return seed(); })();
+/* Bổ sung trường cho dữ liệu cũ: uid đơn, danh sách đơn đã xoá, mốc thời gian */
+function fixup(s) {
+  s.orders.forEach(o => { if (!o.uid) o.uid = newUid(); });
+  s.deleted = s.deleted || {};
+  s.menuAt = s.menuAt || '2000-01-01T00:00:00.000Z';
+  s.settingsAt = s.settingsAt || '2000-01-01T00:00:00.000Z';
+  return s;
+}
+fixup(S);
+/* Chấm trên nút Đồng bộ = có thay đổi chưa lưu lên OneDrive */
+const renderSyncDot = () => { $('#syncDot').style.display = (!S.exportedAt || (S.changedAt || '') > S.exportedAt) ? '' : 'none'; };
+const save = () => { S.changedAt = new Date().toISOString(); localStorage.setItem(KEY, JSON.stringify(S)); renderSyncDot(); };
+localStorage.setItem(KEY, JSON.stringify(S)); renderSyncDot();
+
+/* ---------- VietQR ---------- */
+const tlv = (id, v) => id + pad(v.length) + v;
+function crc16(s) { let c = 0xFFFF; for (let i = 0; i < s.length; i++) { c ^= s.charCodeAt(i) << 8; for (let j = 0; j < 8; j++) c = ((c & 0x8000) ? (c << 1) ^ 0x1021 : c << 1) & 0xFFFF; } return c.toString(16).toUpperCase().padStart(4, '0'); }
+function vietqr(amount, info) {
+  const st = S.settings;
+  const acc = tlv('00', 'A000000727') + tlv('01', tlv('00', st.bin) + tlv('01', st.acct.replace(/\D/g, ''))) + tlv('02', 'QRIBFTTA');
+  let p = tlv('00', '01') + tlv('01', '12') + tlv('38', acc) + tlv('53', '704') + (amount > 0 ? tlv('54', String(amount)) : '') + tlv('58', 'VN') + tlv('62', tlv('08', info));
+  p += '6304';
+  return p + crc16(p);
+}
+function qrImg(text) {
+  if (typeof qrcode !== 'function') return '';
+  const q = qrcode(0, 'M'); q.addData(text); q.make();
+  return q.createDataURL(6, 0);
+}
+
+/* ---------- Màn 1: Lên đơn ---------- */
+const F = { feeMode: '15000', custom: '', type: 'tu', tab: 'hop', hop: {}, le: {}, mix: {}, open: true, q: '' };
+const fee = () => F.feeMode === 'custom' ? digits(F.custom) : +F.feeMode;
+const mixOf = m => F.mix[m.id] || (F.mix[m.id] = { note: '', price: m.price });
+function picked() {
+  const out = [];
+  for (const m of S.menu) if (F.hop[m.id] > 0) out.push(lineOf(m, 'hop', F.hop[m.id], m.mix ? mixOf(m) : {}));
+  for (const m of S.menu) if (F.le[m.id] > 0 && m.priceLe > 0) out.push(lineOf(m, 'chiec', F.le[m.id]));
+  return out;
+}
+
+function renderShip() {
+  $$('#feeChips .chip').forEach(b => b.classList.toggle('on', b.dataset.fee === F.feeMode));
+  $('#customWrap').classList.toggle('on', F.feeMode === 'custom');
+  $$('#shipType .tick').forEach(b => b.classList.toggle('on', b.dataset.type === F.type));
+}
+function renderMenu() {
+  const hopN = Object.values(F.hop).reduce((s, v) => s + v, 0), leN = Object.values(F.le).reduce((s, v) => s + v, 0);
+  $$('#unitTabs button').forEach(b => {
+    b.classList.toggle('on', b.dataset.t === F.tab);
+    const n = b.dataset.t === 'hop' ? hopN : leN;
+    b.innerHTML = (b.dataset.t === 'hop' ? 'Hộp' : 'Lẻ') + (n ? ` <em>· ${n}</em>` : '');
+  });
+  const q = norm(F.q), isHop = F.tab === 'hop';
+  const list = S.menu.filter(m => (isHop || (m.priceLe > 0 && !m.mix)) && (!q || norm(m.name).includes(q)));
+  let html = '', cat = '';
+  for (const m of list) {
+    if (m.cat !== cat) { cat = m.cat; html += `<div class="cat">${CATS[cat] || ''}</div>`; }
+    const n = (isHop ? F.hop : F.le)[m.id] || 0;
+    const sub = isHop ? (m.mix ? `${m.pcs} chiếc · tự ghi vị` : `${m.pcs} chiếc/hộp · ${num(m.price)}`) : `${num(m.priceLe)}/chiếc`;
+    html += `<div class="item ${n ? 'on' : ''}" data-id="${m.id}"><span class="ck"></span>
+      <span class="nm"><b>${esc(m.name)}</b><small>${sub}</small></span>
+      ${n ? `<span class="step"><button data-d="-1">−</button><span>${n} ${isHop ? 'hộp' : 'chiếc'}</span><button data-d="1">+</button></span>` : ''}</div>`;
+    if (isHop && m.mix && n) {
+      const x = mixOf(m);
+      html += `<div class="mixed"><input class="field note" data-mix="${m.id}" data-k="note" placeholder="Ghi chú vị" value="${esc(x.note)}"><input class="field mp" data-mix="${m.id}" data-k="price" inputmode="numeric" placeholder="Giá/hộp" value="${x.price ? num(x.price) : ''}"></div>`;
+    }
+  }
+  $('#menuList').innerHTML = html || '<div class="empty">Không thấy bánh</div>';
+  renderTotal();
+}
+function renderTotal() {
+  const items = picked();
+  const goods = items.reduce((s, i) => s + i.price * i.qty, 0);
+  $('#bhSum').textContent = items.length ? `${unitsText(items)} · ${money(goods)}` : '';
+  $('#total').textContent = money(goods + fee());
+  $('#totalSub').textContent = items.length ? `Bánh ${num(goods)} + Ship ${num(fee())}` : 'Tổng';
+}
+/* Lẻ đủ số chiếc của 1 hộp thì tự đổi sang hộp */
+function autoBox(m) {
+  if (!(m.price > 0 && m.pcs > 1)) return;
+  const q = F.le[m.id] || 0;
+  if (q < m.pcs) return;
+  const k = Math.floor(q / m.pcs);
+  F.hop[m.id] = (F.hop[m.id] || 0) + k;
+  F.le[m.id] = q % m.pcs;
+  toast(`Đã đổi ${k * m.pcs} chiếc → ${k} hộp ${m.name}`);
+}
+
+$('#feeChips').onclick = e => { const b = e.target.closest('.chip'); if (!b) return; F.feeMode = b.dataset.fee; renderShip(); renderTotal(); if (F.feeMode === 'custom') $('#customFee').focus(); };
+$('#customFee').oninput = e => { const v = e.target.value.replace(/\D/g, ''); F.custom = v; e.target.value = v ? (+v).toLocaleString('vi-VN') : ''; renderTotal(); };
+$('#shipType').onclick = e => { const b = e.target.closest('.tick'); if (!b) return; F.type = F.type === b.dataset.type ? '' : b.dataset.type; renderShip(); };
+$('#bhToggle').onclick = () => { F.open = !F.open; $('#bhToggle').classList.toggle('open', F.open); $('#bBody').classList.toggle('on', F.open); };
+$('#unitTabs').onclick = e => { const b = e.target.closest('button'); if (!b) return; F.tab = b.dataset.t; renderMenu(); };
+$('#q').oninput = e => { F.q = e.target.value; renderMenu(); };
+$('#menuList').onclick = e => {
+  const row = e.target.closest('.item'); if (!row) return;
+  const m = S.menu.find(x => x.id === row.dataset.id), bag = F.tab === 'hop' ? F.hop : F.le;
+  const d = e.target.closest('[data-d]');
+  if (d) bag[m.id] = Math.max(0, (bag[m.id] || 0) + +d.dataset.d);
+  else bag[m.id] = bag[m.id] ? 0 : 1;
+  if (F.tab === 'le') autoBox(m);
+  renderMenu();
+};
+$('#menuList').oninput = e => {
+  const id = e.target.dataset.mix; if (!id) return;
+  const x = mixOf(S.menu.find(m => m.id === id));
+  if (e.target.dataset.k === 'price') { x.price = digits(e.target.value); e.target.value = x.price ? num(x.price) : ''; }
+  else x.note = e.target.value;
+  renderTotal();
+};
+
+/* Gợi ý khách cũ */
+function suggest(input, box, by) {
+  const q = by === 'phone' ? input.value.replace(/\D/g, '') : norm(input.value);
+  if (q.length < (by === 'phone' ? 3 : 1)) { box.classList.remove('on'); return; }
+  const hits = S.customers.filter(c => by === 'phone' ? c.phone.replace(/\D/g, '').includes(q) : norm(c.name).includes(q)).slice(0, 4);
+  box.innerHTML = hits.map(c => `<button data-i="${S.customers.indexOf(c)}"><b>${esc(c.name)}</b><br><small>${esc(c.phone)} · ${esc(c.addr)}</small></button>`).join('');
+  box.classList.toggle('on', hits.length > 0);
+}
+function pickCust(e) {
+  const b = e.target.closest('[data-i]'); if (!b) return;
+  const c = S.customers[+b.dataset.i];
+  $('#cName').value = c.name; $('#cPhone').value = c.phone; $('#cAddr').value = c.addr;
+  $$('.sug').forEach(s => s.classList.remove('on'));
+}
+$('#cName').oninput = e => suggest(e.target, $('#sugName'), 'name');
+$('#cPhone').oninput = e => suggest(e.target, $('#sugPhone'), 'phone');
+$('#sugName').onmousedown = $('#sugPhone').onmousedown = e => e.preventDefault();
+$('#sugName').onclick = $('#sugPhone').onclick = pickCust;
+$('#cName').onblur = $('#cPhone').onblur = () => setTimeout(() => $$('.sug').forEach(s => s.classList.remove('on')), 150);
+
+$('#mkBill').onclick = () => {
+  const items = picked();
+  const name = $('#cName').value.trim();
+  if (!items.length) return toast('Chọn bánh');
+  const noPrice = items.find(i => !i.price);
+  if (noPrice) return toast('Nhập giá cho ' + noPrice.name);
+  if (!name) { $('#cName').focus(); return toast('Nhập tên khách'); }
+  const date = iso(new Date());
+  const seq = S.orders.filter(o => o.date === date).reduce((m, o) => Math.max(m, o.seq), 0) + 1;
+  const cust = { name, phone: $('#cPhone').value.trim(), addr: $('#cAddr').value.trim() };
+  const o = makeOrder(date, seq, cust, items, fee(), F.type, false, new Date());
+  S.orders.push(o);
+  const old = S.customers.find(c => (cust.phone && c.phone.replace(/\D/g, '') === cust.phone.replace(/\D/g, '')) || norm(c.name) === norm(cust.name));
+  if (old) Object.assign(old, cust); else S.customers.push(cust);
+  save();
+  F.hop = {}; F.le = {}; F.mix = {}; F.q = ''; $('#q').value = ''; $('#cName').value = $('#cPhone').value = $('#cAddr').value = '';
+  renderMenu(); renderBadge();
+  openBill(o.uid);
+};
+
+/* ---------- Bill ---------- */
+let billId = null;
+function billLine(i) {
+  const desc = i.unit === 'hop'
+    ? `${i.qty} hộp × ${num(i.price)}${i.note ? '' : ` · ${i.pcs} chiếc/hộp`}`
+    : `${i.qty} chiếc × ${num(i.price)}`;
+  return `<div class="ln"><div>${esc(i.name)}<small>${desc}</small>${i.note ? `<small>${esc(i.note)}</small>` : ''}</div><div class="m">${num(i.price * i.qty)}</div></div>`;
+}
+function billHtml(o) {
+  const st = S.settings;
+  const hop = o.items.filter(i => i.unit === 'hop'), le = o.items.filter(i => i.unit === 'chiec');
+  const shipName = o.ship.type === 'ngoai' ? 'Ship ngoài' : o.ship.type === 'tu' ? 'Tự ship' : 'Ship';
+  const src = qrImg(vietqr(o.total, o.id));
+  const d = parseIso(o.date), t = new Date(o.createdAt);
+  return `<div class="bill" id="billCard">
+    ${o.paid ? '<div class="stamp">ĐÃ THANH TOÁN</div>' : ''}
+    <div class="bhead"><img src="logo.jpg" alt=""><div class="shop">${esc(st.shop)}</div>
+      <svg class="wave" viewBox="0 0 58 10" aria-hidden="true"><path d="M2 5q5-4 9 0t9 0 9 0 9 0 9 0 9 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <div class="bcode"><b>${esc(o.id)}</b> · ${pad(d.getDate())}/${pad(d.getMonth() + 1)} ${pad(t.getHours())}:${pad(t.getMinutes())}</div></div>
+    <div class="cust"><b>${esc(o.cust.name)}</b>${o.cust.phone ? `<div>${esc(o.cust.phone)}</div>` : ''}${o.cust.addr ? `<div>${esc(o.cust.addr)}</div>` : ''}</div>
+    ${hop.length ? `<div class="grp">Bánh hộp</div>${hop.map(billLine).join('')}` : ''}
+    ${le.length ? `<div class="grp">Bánh lẻ</div>${le.map(billLine).join('')}` : ''}
+    <div class="ln ship"><div>${shipName}</div><div class="m">${num(o.ship.fee)}</div></div>
+    <div class="tot"><span>Tổng</span><b>${money(o.total)}</b></div>
+    <div class="qr">${src ? `<div class="qcap">Quét mã để chuyển khoản</div><div class="qrbox"><i></i><i></i><i></i><i></i><img src="${src}" alt="QR"></div>` : '<div class="empty">Không tải được QR</div>'}
+      <div class="bank"><b>${esc(st.bank)} · ${esc(st.acct)}</b><br>${esc(st.holder)}<br>Nội dung: <b>${esc(o.id)}</b></div></div>
+  </div>`;
+}
+/* billId = uid (mã nội bộ); o.id = mã đơn hiển thị */
+const byUid = uid => S.orders.find(x => x.uid === uid);
+function openBill(uid) {
+  const o = byUid(uid); if (!o) return;
+  billId = uid;
+  $('#billBox').innerHTML = billHtml(o);
+  $('#bPaid').textContent = o.paid ? 'Chưa trả' : 'Đã trả';
+  $('#billSheet').classList.add('on'); $('#billSheet').scrollTop = 0;
+}
+$('#bClose').onclick = () => { $('#billSheet').classList.remove('on'); renderAll(); };
+$('#bPaid').onclick = () => { const o = byUid(billId); o.paid = !o.paid; o.updatedAt = new Date().toISOString(); save(); openBill(billId); };
+$('#bDel').onclick = () => {
+  const o = byUid(billId);
+  if (!o || !confirm('Xoá đơn ' + o.id + '?')) return;
+  S.deleted[o.uid] = new Date().toISOString();
+  S.orders = S.orders.filter(x => x.uid !== billId); save();
+  $('#billSheet').classList.remove('on'); renderAll(); toast('Đã xoá');
+};
+$('#bSave').onclick = async () => {
+  if (!window.html2canvas) return toast('Chụp màn hình để gửi');
+  const canvas = await html2canvas($('#billCard'), { scale: 3, backgroundColor: '#FFFFFF', useCORS: true });
+  const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+  const file = new File([blob], byUid(billId).id + '.png', { type: 'image/png' });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file] }); } catch (e) {} }
+  else { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file.name; a.click(); }
+};
+
+/* ---------- Màn 2: Đã lên đơn ---------- */
+let listF = 'today';
+function renderList() {
+  const today = iso(new Date());
+  let os = S.orders.slice();
+  if (listF === 'today') os = os.filter(o => o.date === today);
+  if (listF === 'unpaid') os = os.filter(o => !o.paid);
+  os.sort((a, b) => b.date.localeCompare(a.date) || b.seq - a.seq);
+  if (listF === 'all') os = os.slice(0, 200);
+  const unpaid = os.filter(o => !o.paid);
+  $('#listSum').innerHTML = `<span>${os.length} đơn</span><span>Chưa trả ${unpaid.length} · <b>${money(unpaid.reduce((s, o) => s + o.total, 0))}</b></span>`;
+  let html = '', day = '';
+  for (const o of os) {
+    if (o.date !== day) { day = o.date; html += `<div class="day">${o.date === today ? 'Hôm nay' : dayLabel(o.date)}</div>`; }
+    html += `<div class="ord ${o.paid ? 'done' : ''}" data-id="${esc(o.uid)}"><button class="paid" aria-label="Đã trả"></button>
+      <div class="info"><div class="code">${esc(o.id)}</div><div class="sub">${esc(o.cust.name)} · ${unitsText(o.items)}${o.ship.fee ? ' · ' + (o.ship.type === 'ngoai' ? 'Ship ngoài' : 'Tự ship') : ''}</div></div>
+      <div class="amt">${num(o.total)}</div></div>`;
+  }
+  $('#orders').innerHTML = html || '<div class="empty">Chưa có đơn</div>';
+}
+function renderBadge() {
+  const n = S.orders.filter(o => !o.paid && o.date === iso(new Date())).length;
+  const b = $('#unpaidBadge'); b.textContent = n; b.style.display = n ? '' : 'none';
+}
+$('#listFilter').onclick = e => { const b = e.target.closest('.chip'); if (!b) return; listF = b.dataset.f; $$('#listFilter .chip').forEach(x => x.classList.toggle('on', x === b)); renderList(); };
+$('#orders').onclick = e => {
+  const row = e.target.closest('.ord'); if (!row) return;
+  const o = byUid(row.dataset.id);
+  if (e.target.closest('.paid')) { o.paid = !o.paid; o.updatedAt = new Date().toISOString(); save(); renderList(); renderBadge(); toast(o.paid ? 'Đã trả · ' + o.id : 'Chưa trả · ' + o.id); }
+  else openBill(o.uid);
+};
+
+/* ---------- Màn 3: Báo cáo ---------- */
+const R = { mode: 'm', anchor: new Date(), from: iso(new Date(new Date().getFullYear(), new Date().getMonth(), 1)), to: iso(new Date()), sel: null };
+function range() {
+  const a = R.anchor, y = a.getFullYear(), m = a.getMonth();
+  if (R.mode === 'd') return [iso(a), iso(a)];
+  if (R.mode === 'm') return [iso(new Date(y, m, 1)), iso(new Date(y, m + 1, 0))];
+  if (R.mode === 'q') { const q = Math.floor(m / 3) * 3; return [iso(new Date(y, q, 1)), iso(new Date(y, q + 3, 0))]; }
+  if (R.mode === 'y') return [`${y}-01-01`, `${y}-12-31`];
+  return R.from <= R.to ? [R.from, R.to] : [R.to, R.from];
+}
+function periodLabel() {
+  const a = R.anchor;
+  return { d: dayLabel(iso(a)), m: `Tháng ${a.getMonth() + 1}/${a.getFullYear()}`, q: `Quý ${Math.floor(a.getMonth() / 3) + 1}/${a.getFullYear()}`, y: `Năm ${a.getFullYear()}` }[R.mode] || '';
+}
+/* Doanh thu biểu đồ = bánh + tự ship (không tính ship ngoài) */
+const chartVal = o => o.goods + (o.ship.type === 'tu' ? o.ship.fee : 0);
+function buckets(s, e, os) {
+  const days = Math.round((parseIso(e) - parseIso(s)) / 864e5) + 1;
+  const g = R.mode === 'd' ? 'h' : R.mode === 'm' ? 'd' : (R.mode === 'q' || R.mode === 'y') ? 'mo'
+    : days === 1 ? 'h' : days <= 62 ? 'd' : days <= 1096 ? 'mo' : 'y';
+  const out = [];
+  if (g === 'h') {
+    const hs = os.map(o => new Date(o.createdAt).getHours());
+    const lo = hs.length ? Math.min(...hs) : 8, hi = hs.length ? Math.max(...hs) : 20;
+    for (let h = lo; h <= hi; h++) out.push({ k: h, x: h + 'h', full: `${h}:00 – ${h + 1}:00`, v: 0 });
+    os.forEach(o => { const b = out.find(b => b.k === new Date(o.createdAt).getHours()); if (b) b.v += chartVal(o); });
+  } else if (g === 'd') {
+    for (let d = parseIso(s); iso(d) <= e; d.setDate(d.getDate() + 1)) out.push({ k: iso(d), x: String(d.getDate()), full: dayLabel(iso(d)), v: 0 });
+    const ix = Object.fromEntries(out.map((b, i) => [b.k, i]));
+    os.forEach(o => { const i = ix[o.date]; if (i != null) out[i].v += chartVal(o); });
+  } else if (g === 'mo') {
+    const a = parseIso(s), z = parseIso(e), multiYear = a.getFullYear() !== z.getFullYear();
+    for (let d = new Date(a.getFullYear(), a.getMonth(), 1); d <= z; d.setMonth(d.getMonth() + 1)) out.push({ k: iso(d).slice(0, 7), x: multiYear ? `${d.getMonth() + 1}/${String(d.getFullYear()).slice(2)}` : 'T' + (d.getMonth() + 1), full: `Tháng ${d.getMonth() + 1}/${d.getFullYear()}`, v: 0 });
+    const ix = Object.fromEntries(out.map((b, i) => [b.k, i]));
+    os.forEach(o => { const i = ix[o.date.slice(0, 7)]; if (i != null) out[i].v += chartVal(o); });
+  } else {
+    for (let y = +s.slice(0, 4); y <= +e.slice(0, 4); y++) out.push({ k: String(y), x: String(y), full: `Năm ${y}`, v: 0 });
+    os.forEach(o => { const b = out.find(b => b.k === o.date.slice(0, 4)); if (b) b.v += chartVal(o); });
+  }
+  return out;
+}
+function chartHtml(bs) {
+  const max = Math.max(0, ...bs.map(b => b.v));
+  const total = bs.reduce((s, b) => s + b.v, 0);
+  const sel = R.sel != null && bs[R.sel] ? bs[R.sel] : null;
+  const step = Math.ceil(bs.length / 7);
+  return `<div class="card">
+    <p class="label">Doanh thu</p><span class="cap">Bánh + Tự ship</span>
+    <div class="cread"><span>${sel ? esc(sel.full) : 'Tổng kỳ'}</span><b>${money(sel ? sel.v : total)}</b></div>
+    <div class="plot">${max ? `<div class="cmax"><span>${short(max)}</span></div>` : ''}
+      <div class="bars ${sel ? 'sel' : ''}" id="bars">${bs.map((b, i) => `<button data-i="${i}" class="${R.sel === i ? 'on' : ''}" aria-label="${esc(b.full)}: ${money(b.v)}"><i style="height:${max ? (b.v / max * 100).toFixed(1) : 0}%"></i></button>`).join('')}</div>
+      <div class="xl">${bs.map((b, i) => `<span>${i % step === 0 ? b.x : ''}</span>`).join('')}</div>
+    </div>
+  </div>`;
+}
+/* Chi tiết bánh: tổng chiếc quy đổi + doanh thu thực tế */
+function detailHtml(os) {
+  const by = {};
+  os.forEach(o => o.items.forEach(i => {
+    const k = by[i.id + '|' + i.name] || (by[i.id + '|' + i.name] = { name: i.name, mix: false, hop: 0, le: 0, pcs: 0, m: 0 });
+    if (i.note || S.menu.find(m => m.id === i.id)?.mix) k.mix = true;
+    if (i.unit === 'hop') { k.hop += i.qty; k.pcs += i.qty * i.pcs; } else { k.le += i.qty; k.pcs += i.qty; }
+    k.m += i.price * i.qty;
+  }));
+  const rows = Object.values(by).sort((a, b) => b.m - a.m);
+  if (!rows.length) return '<div class="empty">Không có đơn</div>';
+  return `<div class="card dt"><p class="label">Chi tiết bánh</p>${rows.map(r => `<div class="r">
+      <div>${esc(r.name)}<small>${r.mix ? '' : [r.hop ? r.hop + ' hộp' : '', r.le ? r.le + ' lẻ' : ''].filter(Boolean).join(' + ')}</small></div>
+      <div class="v"><b>${num(r.m)}</b><small>${r.mix ? r.hop + ' hộp' : r.pcs + ' chiếc'}</small></div></div>`).join('')}</div>`;
+}
+function renderReport() {
+  $$('#rMode button').forEach(b => b.classList.toggle('on', b.dataset.m === R.mode));
+  $('#rPeriod').style.display = R.mode === 'c' ? 'none' : '';
+  $('#rDates').classList.toggle('on', R.mode === 'c');
+  $('#rLabel').textContent = periodLabel();
+  $('#rFrom').value = R.from; $('#rTo').value = R.to;
+  const [s, e] = range();
+  const os = S.orders.filter(o => o.date >= s && o.date <= e);
+  const sum = (arr, f) => arr.reduce((t, o) => t + f(o), 0);
+  const tu = os.filter(o => o.ship.type === 'tu' && o.ship.fee > 0), ng = os.filter(o => o.ship.type === 'ngoai' && o.ship.fee > 0);
+  const paid = os.filter(o => o.paid), unpaid = os.filter(o => !o.paid);
+  $('#rBody').innerHTML = `
+    <div class="tile hero"><small>Bánh</small><b>${money(sum(os, o => o.goods))}</b><i>${os.length} đơn</i></div>
+    <div class="grid2">
+      <div class="tile"><small>Tự ship</small><b>${num(sum(tu, o => o.ship.fee))}</b><i>${tu.length} đơn</i></div>
+      <div class="tile"><small>Ship ngoài</small><b>${num(sum(ng, o => o.ship.fee))}</b><i>${ng.length} đơn</i></div>
+    </div>
+    <div class="grid2">
+      <div class="tile"><small>Đã thu</small><b>${num(sum(paid, o => o.total))}</b><i>${paid.length} đơn</i></div>
+      <div class="tile wood"><small>Chưa thu</small><b>${num(sum(unpaid, o => o.total))}</b><i>${unpaid.length} đơn</i></div>
+    </div>
+    ${chartHtml(buckets(s, e, os))}
+    ${detailHtml(os)}`;
+}
+$('#rMode').onclick = e => { const b = e.target.closest('button'); if (!b) return; R.mode = b.dataset.m; R.anchor = new Date(); R.sel = null; renderReport(); };
+$('#rPeriod').onclick = e => {
+  const b = e.target.closest('[data-dir]'); if (!b) return;
+  const d = +b.dataset.dir, a = new Date(R.anchor);
+  if (R.mode === 'd') a.setDate(a.getDate() + d);
+  else { a.setDate(1); if (R.mode === 'm') a.setMonth(a.getMonth() + d); if (R.mode === 'q') a.setMonth(a.getMonth() + 3 * d); if (R.mode === 'y') a.setFullYear(a.getFullYear() + d); }
+  R.anchor = a; R.sel = null; renderReport();
+};
+$('#rBody').onclick = e => { const b = e.target.closest('#bars button'); if (!b) return; const i = +b.dataset.i; R.sel = R.sel === i ? null : i; renderReport(); };
+$('#rFrom').onchange = e => { R.from = e.target.value; R.sel = null; renderReport(); };
+$('#rTo').onchange = e => { R.to = e.target.value; R.sel = null; renderReport(); };
+
+/* ---------- Cài đặt ---------- */
+let draftMenu = [];
+function renderSetMenu() {
+  let html = '';
+  for (const c of Object.keys(CATS)) {
+    html += `<div class="cat">${CATS[c]}</div>`;
+    draftMenu.forEach((m, i) => {
+      if (m.cat !== c) return;
+      html += `<div class="mitem">
+        <div class="mrow"><input class="field" data-i="${i}" data-k="name" placeholder="Tên bánh" value="${esc(m.name)}"><button class="x" data-del="${i}" aria-label="Xoá">×</button></div>
+        <div class="mrow">
+          <label class="pc">Chiếc/hộp<input class="field" data-i="${i}" data-k="pcs" inputmode="numeric" value="${m.pcs || ''}"></label>
+          <label>${m.mix ? 'Giá hộp (gợi ý)' : 'Giá hộp'}<input class="field" data-i="${i}" data-k="price" inputmode="numeric" value="${m.price ? num(m.price) : ''}"></label>
+          ${m.mix ? '<label></label>' : `<label>Giá lẻ<input class="field" data-i="${i}" data-k="priceLe" inputmode="numeric" placeholder="Không bán" value="${m.priceLe ? num(m.priceLe) : ''}"></label>`}
+        </div></div>`;
+    });
+    html += `<button class="add" data-add="${c}">+ Thêm</button>`;
+  }
+  $('#stMenu').innerHTML = html;
+}
+$('#setBtn').onclick = () => {
+  const st = S.settings;
+  $('#stReset').style.display = S.sample ? '' : 'none';   // chỉ hiện khi đang có dữ liệu mẫu, tránh xoá nhầm đơn thật
+  $('#stBank').innerHTML = BANKS.map(([n, b]) => `<option value="${b}">${n}</option>`).join('');
+  $('#stShop').value = st.shop; $('#stBank').value = st.bin; $('#stAcct').value = st.acct; $('#stHolder').value = st.holder;
+  draftMenu = S.menu.map(m => ({ ...m })); renderSetMenu();
+  $('#setSheet').classList.add('on'); $('#setSheet').scrollTop = 0;
+};
+$('#stMenu').oninput = e => {
+  const i = e.target.dataset.i; if (i == null) return;
+  const k = e.target.dataset.k;
+  if (k === 'name') draftMenu[i].name = e.target.value;
+  else { draftMenu[i][k] = digits(e.target.value); if (k !== 'pcs') e.target.value = draftMenu[i][k] ? num(draftMenu[i][k]) : ''; }
+};
+$('#stMenu').onclick = e => {
+  const del = e.target.closest('[data-del]'), add = e.target.closest('[data-add]');
+  if (del) { draftMenu.splice(+del.dataset.del, 1); renderSetMenu(); }
+  if (add) { draftMenu.push({ id: 'b' + Date.now(), cat: add.dataset.add, name: '', pcs: 5, price: 0, priceLe: 0, mix: false }); renderSetMenu(); }
+};
+$('#stCancel').onclick = () => $('#setSheet').classList.remove('on');
+$('#stSave').onclick = () => {
+  const bk = BANKS.find(([, b]) => b === $('#stBank').value) || BANKS[0];
+  Object.assign(S.settings, { shop: $('#stShop').value.trim(), bank: bk[0], bin: bk[1], acct: $('#stAcct').value.replace(/\D/g, ''), holder: noAccent($('#stHolder').value).toUpperCase().trim() });
+  const order = Object.keys(CATS);
+  S.menu = draftMenu.filter(m => m.name.trim()).map(m => ({ ...m, pcs: m.pcs || 1 })).sort((a, b) => order.indexOf(a.cat) - order.indexOf(b.cat));
+  S.menuAt = S.settingsAt = new Date().toISOString();
+  save(); $('#setSheet').classList.remove('on'); renderAll(); toast('Đã lưu');
+};
+$('#stReset').onclick = () => {
+  if (!confirm('Xoá toàn bộ đơn và khách mẫu?')) return;
+  const now = new Date().toISOString();
+  S.orders.forEach(o => { S.deleted[o.uid] = now; });
+  S.orders = []; S.customers = []; S.sample = false; save();
+  $('#setSheet').classList.remove('on'); renderAll(); toast('Đã xoá dữ liệu mẫu');
+};
+
+/* ---------- Đồng bộ OneDrive (Cách B: qua file trong ứng dụng Tệp) ----------
+   Lấy dữ liệu: mở file JSON trong OneDrive, gộp theo từng đơn (bản sửa sau cùng thắng).
+   Lưu lên: xuất toàn bộ dữ liệu ra file JSON, chọn "Lưu vào Tệp" → OneDrive (ghi đè). */
+const FILE = 'BanhBaoHoaAnh.json';
+const stamp = s => { if (!s) return '—'; const d = new Date(s); return `${pad(d.getDate())}/${pad(d.getMonth() + 1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+function renderSyncInfo() { $('#syInfo').innerHTML = `Lưu gần nhất: <b>${stamp(S.exportedAt)}</b> · Lấy gần nhất: <b>${stamp(S.importedAt)}</b>`; }
+function exportData() {
+  return JSON.stringify({ app: 'banh-bao-hoa-anh', v: 2, savedAt: new Date().toISOString(), settings: S.settings, settingsAt: S.settingsAt, menu: S.menu, menuAt: S.menuAt, customers: S.customers, orders: S.orders, deleted: S.deleted });
+}
+function mergeIn(d) {
+  if (!d || d.app !== 'banh-bao-hoa-anh' || !Array.isArray(d.orders)) throw new Error('bad file');
+  let added = 0, updated = 0;
+  for (const [u, t] of Object.entries(d.deleted || {})) if (!S.deleted[u] || S.deleted[u] < t) S.deleted[u] = t;
+  const mine = new Map(S.orders.map(o => [o.uid, o]));
+  for (const o of d.orders) {
+    if (!o || !o.uid) continue;
+    const m = mine.get(o.uid);
+    if (!m) { S.orders.push(o); mine.set(o.uid, o); added++; }
+    else if ((o.updatedAt || '') > (m.updatedAt || '')) { Object.assign(m, o); updated++; }
+  }
+  const before = S.orders.length;
+  S.orders = S.orders.filter(o => !(S.deleted[o.uid] && S.deleted[o.uid] >= (o.updatedAt || '')));
+  const removed = before - S.orders.length;
+  let other = 0;
+  const ckey = c => (c.phone || '').replace(/\D/g, '') || norm(c.name);
+  const have = new Set(S.customers.map(ckey));
+  for (const c of d.customers || []) if (c && c.name && !have.has(ckey(c))) { S.customers.push(c); have.add(ckey(c)); other++; }
+  if (Array.isArray(d.menu) && (d.menuAt || '') > S.menuAt) { S.menu = d.menu; S.menuAt = d.menuAt; other++; }
+  if (d.settings && (d.settingsAt || '') > S.settingsAt) { S.settings = d.settings; S.settingsAt = d.settingsAt; other++; }
+  S.importedAt = new Date().toISOString();
+  if (added || updated || removed || other) save();      // có thay đổi → cần lưu lại lên OneDrive
+  else localStorage.setItem(KEY, JSON.stringify(S));
+  return { added, updated, removed };
+}
+$('#syncBtn').onclick = () => { renderSyncInfo(); $('#syncSheet').classList.add('on'); };
+$('#syClose').onclick = () => $('#syncSheet').classList.remove('on');
+$('#syImport').onclick = () => $('#syFile').click();
+$('#syFile').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  try {
+    const r = mergeIn(JSON.parse(await f.text()));
+    renderAll(); renderSyncInfo();
+    toast(`Đã gộp · ${r.added} đơn mới · ${r.updated} cập nhật${r.removed ? ` · ${r.removed} đã xoá` : ''}`);
+  } catch (err) { toast('File không đúng'); }
+};
+$('#syExport').onclick = async () => {
+  const blob = new Blob([exportData()], { type: 'application/json' });
+  const file = new File([blob], FILE, { type: 'application/json' });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file] }); } catch (err) { if (err.name === 'AbortError') return; }
+  } else {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = FILE; a.click();
+  }
+  S.exportedAt = new Date().toISOString();
+  localStorage.setItem(KEY, JSON.stringify(S)); renderSyncDot(); renderSyncInfo();
+  toast('Đã lưu file ' + FILE);
+};
+
+/* ---------- Điều hướng ---------- */
+$('#tabs').onclick = e => {
+  const b = e.target.closest('button'); if (!b) return;
+  $$('#tabs button').forEach(x => x.classList.toggle('on', x === b));
+  $$('.screen').forEach(s => s.classList.toggle('on', s.id === b.dataset.s));
+  $('#totalBar').classList.toggle('on', b.dataset.s === 's-order');
+  renderAll(); window.scrollTo(0, 0);
+};
+function renderAll() { renderShip(); renderMenu(); renderList(); renderReport(); renderBadge(); }
+renderAll();
+
+/* Chạy offline */
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
