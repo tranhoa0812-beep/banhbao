@@ -261,6 +261,14 @@ header h1{color:var(--leaf);font-size:25px}
 .qrbox i:nth-of-type(2){right:0;top:0;border-width:2px 2px 0 0}
 .qrbox i:nth-of-type(3){left:0;bottom:0;border-width:0 0 2px 2px}
 .qrbox i:nth-of-type(4){right:0;bottom:0;border-width:0 2px 2px 0}
+/* Nút gạt kiểu iPhone */
+.switch{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;padding-top:12px;border-top:1px solid var(--sep);cursor:pointer;font-size:14px}
+.switch input{position:absolute;opacity:0;pointer-events:none}
+.switch i{flex:none;width:48px;height:28px;border-radius:14px;background:#D9DED5;position:relative;transition:background .2s}
+.switch i::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .2s}
+.switch input:checked + i{background:var(--sage)}
+.switch input:checked + i::after{transform:translateX(20px)}
+.switch.bsw{background:var(--card);border:0;border-radius:14px;padding:12px 14px;margin-top:10px}
 .hint{font-size:13px;color:var(--muted);margin:0 0 12px}
 .hint b{color:var(--ink);font-weight:600}
 .btn.wide{width:100%}
@@ -297,6 +305,7 @@ header h1{color:var(--leaf);font-size:25px}
           <button class="tick" data-type="tu"><span class="box"></span>Tự ship</button>
           <button class="tick" data-type="ngoai"><span class="box"></span>Ship ngoài</button>
         </div>
+        <label class="switch"><span>Hiện phí ship trên bill</span><input type="checkbox" id="showShip"><i></i></label>
       </div>
 
       <div class="card">
@@ -366,6 +375,7 @@ header h1{color:var(--leaf);font-size:25px}
 
 <div class="sheet" id="billSheet"><div class="wrap">
   <div id="billBox"></div>
+  <label class="switch bsw"><span>Hiện phí ship trên bill</span><input type="checkbox" id="bShowShip"><i></i></label>
   <div class="actions">
     <button class="btn ghost" id="bPaid">Đã trả</button>
     <button class="btn wood" id="bSave">Lưu ảnh</button>
@@ -494,15 +504,20 @@ function seed() {
       const type = r() < 0.6 ? 'tu' : 'ngoai';
       const paid = back > 2 ? r() < 0.95 : (back === 0 ? k === 1 : r() < 0.5);
       const at = new Date(d.getTime() + (7 + Math.floor(r() * 13)) * 3600e3 + Math.floor(r() * 60) * 60e3);
-      orders.push(makeOrder(iso(d), k, { ...c }, items, fee, type, paid, at));
+      orders.push(makeOrder(iso(d), k, { ...c }, items, fee, type, paid, at, r() < 0.3));
     }
   }
   return { v: 2, sample: true, settings: { ...SETTINGS0 }, menu: MENU0, customers: custs, orders };
 }
 
-function makeOrder(date, seq, cust, items, fee, type, paid, at) {
+/* ship.show = có ghi phí ship lên bill không. Không ghi → khách chỉ trả tiền bánh, phí ship chỉ để tự theo dõi.
+   total = số tiền khách phải trả (cũng là số tiền trong QR). */
+const billTotal = o => o.goods + (o.ship.show ? o.ship.fee : 0);
+function makeOrder(date, seq, cust, items, fee, type, paid, at, show = false) {
   const goods = items.reduce((s, i) => s + i.price * i.qty, 0);
-  return { uid: newUid(), id: codeOf(date, seq, cust.name), date, seq, cust, items, ship: { fee, type }, goods, total: goods + fee, paid, createdAt: at.toISOString(), updatedAt: at.toISOString() };
+  const o = { uid: newUid(), id: codeOf(date, seq, cust.name), date, seq, cust, items, ship: { fee, type, show }, goods, total: 0, paid, createdAt: at.toISOString(), updatedAt: at.toISOString() };
+  o.total = billTotal(o);
+  return o;
 }
 
 function codeOf(date, seq, name) {
@@ -526,7 +541,10 @@ const KEY = 'bbha.v2';
 let S = (() => { try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.v === 2) return s; } catch (e) {} return seed(); })();
 /* Bổ sung trường cho dữ liệu cũ: uid đơn, danh sách đơn đã xoá, mốc thời gian */
 function fixup(s) {
-  s.orders.forEach(o => { if (!o.uid) o.uid = newUid(); });
+  s.orders.forEach(o => {
+    if (!o.uid) o.uid = newUid();
+    if (o.ship && o.ship.show === undefined) o.ship.show = true;   // đơn tạo trước khi có nút gạt: đã ghi ship lên bill
+  });
   s.deleted = s.deleted || {};
   s.menuAt = s.menuAt || '2000-01-01T00:00:00.000Z';
   s.settingsAt = s.settingsAt || '2000-01-01T00:00:00.000Z';
@@ -555,7 +573,7 @@ function qrImg(text) {
 }
 
 /* ---------- Màn 1: Lên đơn ---------- */
-const F = { feeMode: '15000', custom: '', type: 'tu', tab: 'hop', hop: {}, le: {}, mix: {}, open: true, q: '' };
+const F = { feeMode: '15000', custom: '', type: 'tu', showShip: false, tab: 'hop', hop: {}, le: {}, mix: {}, open: true, q: '' };
 const fee = () => F.feeMode === 'custom' ? digits(F.custom) : +F.feeMode;
 const mixOf = m => F.mix[m.id] || (F.mix[m.id] = { note: '', price: m.price });
 function picked() {
@@ -569,6 +587,7 @@ function renderShip() {
   $$('#feeChips .chip').forEach(b => b.classList.toggle('on', b.dataset.fee === F.feeMode));
   $('#customWrap').classList.toggle('on', F.feeMode === 'custom');
   $$('#shipType .tick').forEach(b => b.classList.toggle('on', b.dataset.type === F.type));
+  $('#showShip').checked = F.showShip;
 }
 function renderMenu() {
   const hopN = Object.values(F.hop).reduce((s, v) => s + v, 0), leN = Object.values(F.le).reduce((s, v) => s + v, 0);
@@ -599,8 +618,10 @@ function renderTotal() {
   const items = picked();
   const goods = items.reduce((s, i) => s + i.price * i.qty, 0);
   $('#bhSum').textContent = items.length ? `${unitsText(items)} · ${money(goods)}` : '';
-  $('#total').textContent = money(goods + fee());
-  $('#totalSub').textContent = items.length ? `Bánh ${num(goods)} + Ship ${num(fee())}` : 'Tổng';
+  $('#total').textContent = money(goods + (F.showShip ? fee() : 0));
+  $('#totalSub').textContent = !items.length ? 'Tổng bill'
+    : F.showShip ? `Bánh ${num(goods)} + Ship ${num(fee())}`
+    : `Ship ${num(fee())} · không ghi bill`;
 }
 /* Lẻ đủ số chiếc của 1 hộp thì tự đổi sang hộp */
 function autoBox(m) {
@@ -616,6 +637,7 @@ function autoBox(m) {
 $('#feeChips').onclick = e => { const b = e.target.closest('.chip'); if (!b) return; F.feeMode = b.dataset.fee; renderShip(); renderTotal(); if (F.feeMode === 'custom') $('#customFee').focus(); };
 $('#customFee').oninput = e => { const v = e.target.value.replace(/\D/g, ''); F.custom = v; e.target.value = v ? (+v).toLocaleString('vi-VN') : ''; renderTotal(); };
 $('#shipType').onclick = e => { const b = e.target.closest('.tick'); if (!b) return; F.type = F.type === b.dataset.type ? '' : b.dataset.type; renderShip(); };
+$('#showShip').onchange = e => { F.showShip = e.target.checked; renderTotal(); };
 $('#bhToggle').onclick = () => { F.open = !F.open; $('#bhToggle').classList.toggle('open', F.open); $('#bBody').classList.toggle('on', F.open); };
 $('#unitTabs').onclick = e => { const b = e.target.closest('button'); if (!b) return; F.tab = b.dataset.t; renderMenu(); };
 $('#q').oninput = e => { F.q = e.target.value; renderMenu(); };
@@ -666,12 +688,12 @@ $('#mkBill').onclick = () => {
   const date = iso(new Date());
   const seq = S.orders.filter(o => o.date === date).reduce((m, o) => Math.max(m, o.seq), 0) + 1;
   const cust = { name, phone: $('#cPhone').value.trim(), addr: $('#cAddr').value.trim() };
-  const o = makeOrder(date, seq, cust, items, fee(), F.type, false, new Date());
+  const o = makeOrder(date, seq, cust, items, fee(), F.type, false, new Date(), F.showShip);
   S.orders.push(o);
   const old = S.customers.find(c => (cust.phone && c.phone.replace(/\D/g, '') === cust.phone.replace(/\D/g, '')) || norm(c.name) === norm(cust.name));
   if (old) Object.assign(old, cust); else S.customers.push(cust);
   save();
-  F.hop = {}; F.le = {}; F.mix = {}; F.q = ''; $('#q').value = ''; $('#cName').value = $('#cPhone').value = $('#cAddr').value = '';
+  F.hop = {}; F.le = {}; F.mix = {}; F.q = ''; F.showShip = false; renderShip();   // đơn sau lại mặc định không ghi ship $('#q').value = ''; $('#cName').value = $('#cPhone').value = $('#cAddr').value = '';
   renderMenu(); renderBadge();
   openBill(o.uid);
 };
@@ -698,7 +720,7 @@ function billHtml(o) {
     <div class="cust"><b>${esc(o.cust.name)}</b>${o.cust.phone ? `<div>${esc(o.cust.phone)}</div>` : ''}${o.cust.addr ? `<div>${esc(o.cust.addr)}</div>` : ''}</div>
     ${hop.length ? `<div class="grp">Bánh hộp</div>${hop.map(billLine).join('')}` : ''}
     ${le.length ? `<div class="grp">Bánh lẻ</div>${le.map(billLine).join('')}` : ''}
-    <div class="ln ship"><div>${shipName}</div><div class="m">${num(o.ship.fee)}</div></div>
+    ${o.ship.show ? `<div class="ln ship"><div>${shipName}</div><div class="m">${num(o.ship.fee)}</div></div>` : ''}
     <div class="tot"><span>Tổng</span><b>${money(o.total)}</b></div>
     <div class="qr">${src ? `<div class="qcap">Quét mã để chuyển khoản</div><div class="qrbox"><i></i><i></i><i></i><i></i><img src="${src}" alt="QR"></div>` : '<div class="empty">Không tải được QR</div>'}
       <div class="bank"><b>${esc(st.bank)} · ${esc(st.acct)}</b><br>${esc(st.holder)}<br>Nội dung: <b>${esc(o.id)}</b></div></div>
@@ -711,9 +733,16 @@ function openBill(uid) {
   billId = uid;
   $('#billBox').innerHTML = billHtml(o);
   $('#bPaid').textContent = o.paid ? 'Chưa trả' : 'Đã trả';
+  $('#bShowShip').checked = !!o.ship.show;
   $('#billSheet').classList.add('on'); $('#billSheet').scrollTop = 0;
 }
 $('#bClose').onclick = () => { $('#billSheet').classList.remove('on'); renderAll(); };
+/* Gạt hiện/ẩn ship trên bill đã tạo: tổng tiền và QR tính lại */
+$('#bShowShip').onchange = e => {
+  const o = byUid(billId); if (!o) return;
+  o.ship.show = e.target.checked; o.total = billTotal(o); o.updatedAt = new Date().toISOString();
+  save(); openBill(billId);
+};
 $('#bPaid').onclick = () => { const o = byUid(billId); o.paid = !o.paid; o.updatedAt = new Date().toISOString(); save(); openBill(billId); };
 $('#bDel').onclick = () => {
   const o = byUid(billId);
