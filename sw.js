@@ -1,7 +1,7 @@
 /* Cho app chạy khi không có mạng.
    Mở app: lấy ngay bản đã lưu trong máy, đồng thời tải bản mới (nếu có mạng) cho lần mở sau.
    Khi sửa app: tăng số VERSION để máy xoá bộ nhớ cũ. */
-const VERSION = 'hoaanh-v2';
+const VERSION = 'hoaanh-v3';
 const FILES = [
   './', 'index.html', 'manifest.webmanifest', 'logo.jpg', 'icon-180.jpg',
   'vendor/qrcode.min.js', 'vendor/html2canvas.min.js',

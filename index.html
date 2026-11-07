@@ -70,6 +70,12 @@ main{padding:14px 16px calc(150px + var(--safe-b))}
 .bh .chev{width:18px;height:18px;color:var(--muted);transition:transform .2s}
 .bh.open .chev{transform:rotate(180deg)}
 .bbody{display:none;margin-top:12px}.bbody.on{display:block}
+/* Phí ship thu gọn: chạm dòng tóm tắt mới sổ xuống */
+.sh{display:flex;align-items:center;gap:8px;width:100%;min-height:30px;text-align:left}
+.sh .sum{flex:1;font-weight:600;color:var(--wood);font-size:15px}
+.sh .sum.none{font-weight:500;color:var(--muted)}
+.sh .chev{width:18px;height:18px;color:var(--muted);transition:transform .2s}
+.sh.open .chev{transform:rotate(180deg)}
 .search{position:relative;margin-bottom:6px}
 .search svg{position:absolute;left:12px;top:13px;width:20px;height:20px;color:var(--muted)}
 .search .field{padding-left:40px}
@@ -294,6 +300,11 @@ header h1{color:var(--leaf);font-size:25px}
     <section class="screen on" id="s-order">
       <div class="card">
         <p class="label">Phí ship</p>
+        <button class="sh" id="shipToggle">
+          <span class="sum" id="shipSum"></span>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="bbody" id="shipBody">
         <div class="row" id="feeChips">
           <button class="chip" data-fee="15000">15.000</button>
           <button class="chip" data-fee="10000">10.000</button>
@@ -306,6 +317,7 @@ header h1{color:var(--leaf);font-size:25px}
           <button class="tick" data-type="ngoai"><span class="box"></span>Ship ngoài</button>
         </div>
         <label class="switch"><span>Hiện phí ship trên bill</span><input type="checkbox" id="showShip"><i></i></label>
+        </div>
       </div>
 
       <div class="card">
@@ -573,7 +585,9 @@ function qrImg(text) {
 }
 
 /* ---------- Màn 1: Lên đơn ---------- */
-const F = { feeMode: '15000', custom: '', type: 'tu', showShip: false, tab: 'hop', hop: {}, le: {}, mix: {}, open: true, q: '' };
+/* Ship mặc định: 0đ, chưa chọn kiểu, không ghi bill, khung thu gọn */
+const F = { feeMode: '0', custom: '', type: '', showShip: false, shipOpen: false, tab: 'hop', hop: {}, le: {}, mix: {}, open: true, q: '' };
+function resetShip() { F.feeMode = '0'; F.custom = ''; F.type = ''; F.showShip = false; F.shipOpen = false; $('#customFee').value = ''; }
 const fee = () => F.feeMode === 'custom' ? digits(F.custom) : +F.feeMode;
 const mixOf = m => F.mix[m.id] || (F.mix[m.id] = { note: '', price: m.price });
 function picked() {
@@ -588,6 +602,12 @@ function renderShip() {
   $('#customWrap').classList.toggle('on', F.feeMode === 'custom');
   $$('#shipType .tick').forEach(b => b.classList.toggle('on', b.dataset.type === F.type));
   $('#showShip').checked = F.showShip;
+  $('#shipToggle').classList.toggle('open', F.shipOpen);
+  $('#shipBody').classList.toggle('on', F.shipOpen);
+  const f = fee(), sum = $('#shipSum');
+  const kind = F.type === 'tu' ? ' · Tự ship' : F.type === 'ngoai' ? ' · Ship ngoài' : '';
+  sum.classList.toggle('none', !f && !F.type);
+  sum.textContent = !f && !F.type ? 'Không tính ship · chạm để chọn' : `${num(f)}${kind}${F.showShip ? ' · ghi bill' : ''}`;
 }
 function renderMenu() {
   const hopN = Object.values(F.hop).reduce((s, v) => s + v, 0), leN = Object.values(F.le).reduce((s, v) => s + v, 0);
@@ -618,10 +638,12 @@ function renderTotal() {
   const items = picked();
   const goods = items.reduce((s, i) => s + i.price * i.qty, 0);
   $('#bhSum').textContent = items.length ? `${unitsText(items)} · ${money(goods)}` : '';
-  $('#total').textContent = money(goods + (F.showShip ? fee() : 0));
+  const f = fee();
+  $('#total').textContent = money(goods + (F.showShip ? f : 0));
   $('#totalSub').textContent = !items.length ? 'Tổng bill'
-    : F.showShip ? `Bánh ${num(goods)} + Ship ${num(fee())}`
-    : `Ship ${num(fee())} · không ghi bill`;
+    : !f ? 'Tiền bánh'
+    : F.showShip ? `Bánh ${num(goods)} + Ship ${num(f)}`
+    : `Ship ${num(f)} · không ghi bill`;
 }
 /* Lẻ đủ số chiếc của 1 hộp thì tự đổi sang hộp */
 function autoBox(m) {
@@ -635,9 +657,10 @@ function autoBox(m) {
 }
 
 $('#feeChips').onclick = e => { const b = e.target.closest('.chip'); if (!b) return; F.feeMode = b.dataset.fee; renderShip(); renderTotal(); if (F.feeMode === 'custom') $('#customFee').focus(); };
-$('#customFee').oninput = e => { const v = e.target.value.replace(/\D/g, ''); F.custom = v; e.target.value = v ? (+v).toLocaleString('vi-VN') : ''; renderTotal(); };
+$('#customFee').oninput = e => { const v = e.target.value.replace(/\D/g, ''); F.custom = v; e.target.value = v ? (+v).toLocaleString('vi-VN') : ''; renderShip(); renderTotal(); };
 $('#shipType').onclick = e => { const b = e.target.closest('.tick'); if (!b) return; F.type = F.type === b.dataset.type ? '' : b.dataset.type; renderShip(); };
-$('#showShip').onchange = e => { F.showShip = e.target.checked; renderTotal(); };
+$('#showShip').onchange = e => { F.showShip = e.target.checked; renderShip(); renderTotal(); };
+$('#shipToggle').onclick = () => { F.shipOpen = !F.shipOpen; renderShip(); };
 $('#bhToggle').onclick = () => { F.open = !F.open; $('#bhToggle').classList.toggle('open', F.open); $('#bBody').classList.toggle('on', F.open); };
 $('#unitTabs').onclick = e => { const b = e.target.closest('button'); if (!b) return; F.tab = b.dataset.t; renderMenu(); };
 $('#q').oninput = e => { F.q = e.target.value; renderMenu(); };
@@ -685,6 +708,7 @@ $('#mkBill').onclick = () => {
   const noPrice = items.find(i => !i.price);
   if (noPrice) return toast('Nhập giá cho ' + noPrice.name);
   if (!name) { $('#cName').focus(); return toast('Nhập tên khách'); }
+  if (fee() > 0 && !F.type) { F.shipOpen = true; renderShip(); $('#shipToggle').scrollIntoView({ behavior: 'smooth', block: 'center' }); return toast('Chọn Tự ship hay Ship ngoài'); }
   const date = iso(new Date());
   const seq = S.orders.filter(o => o.date === date).reduce((m, o) => Math.max(m, o.seq), 0) + 1;
   const cust = { name, phone: $('#cPhone').value.trim(), addr: $('#cAddr').value.trim() };
@@ -693,7 +717,8 @@ $('#mkBill').onclick = () => {
   const old = S.customers.find(c => (cust.phone && c.phone.replace(/\D/g, '') === cust.phone.replace(/\D/g, '')) || norm(c.name) === norm(cust.name));
   if (old) Object.assign(old, cust); else S.customers.push(cust);
   save();
-  F.hop = {}; F.le = {}; F.mix = {}; F.q = ''; F.showShip = false; renderShip();   // đơn sau lại mặc định không ghi ship $('#q').value = ''; $('#cName').value = $('#cPhone').value = $('#cAddr').value = '';
+  F.hop = {}; F.le = {}; F.mix = {}; F.q = ''; resetShip(); renderShip();   // đơn sau: ship về mặc định 0, thu gọn
+  $('#q').value = ''; $('#cName').value = $('#cPhone').value = $('#cAddr').value = '';
   renderMenu(); renderBadge();
   openBill(o.uid);
 };
@@ -775,7 +800,7 @@ function renderList() {
   for (const o of os) {
     if (o.date !== day) { day = o.date; html += `<div class="day">${o.date === today ? 'Hôm nay' : dayLabel(o.date)}</div>`; }
     html += `<div class="ord ${o.paid ? 'done' : ''}" data-id="${esc(o.uid)}"><button class="paid" aria-label="Đã trả"></button>
-      <div class="info"><div class="code">${esc(o.id)}</div><div class="sub">${esc(o.cust.name)} · ${unitsText(o.items)}${o.ship.fee ? ' · ' + (o.ship.type === 'ngoai' ? 'Ship ngoài' : 'Tự ship') : ''}</div></div>
+      <div class="info"><div class="code">${esc(o.id)}</div><div class="sub">${esc(o.cust.name)} · ${unitsText(o.items)}${o.ship.fee ? ' · ' + (o.ship.type === 'ngoai' ? 'Ship ngoài' : o.ship.type === 'tu' ? 'Tự ship' : 'Ship') : ''}</div></div>
       <div class="amt">${num(o.total)}</div></div>`;
   }
   $('#orders').innerHTML = html || '<div class="empty">Chưa có đơn</div>';
